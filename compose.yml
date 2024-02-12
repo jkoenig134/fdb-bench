@@ -1,0 +1,46 @@
+services:
+  ferretdb-slow:
+    container_name: ferretdb-slow
+    image: ghcr.io/ferretdb/ferretdb
+    restart: on-failure
+    ports:
+      - 27018:27017
+    environment:
+      - FERRETDB_POSTGRESQL_URL=postgres://username:password@postgres:5432/ferretdb
+    depends_on:
+      - postgres
+
+  ferretdb-fast:
+    container_name: ferretdb-fast
+    image: ghcr.io/ferretdb/ferretdb-dev:pr-pg-dotnotation-pushdown-2069
+    restart: on-failure
+    ports:
+      - 27017:27017
+    environment:
+      - FERRETDB_POSTGRESQL_URL=postgres://username:password@postgres:5432/ferretdb
+      - FERRETDB_TEST_ENABLE_NESTED_PUSHDOWN=true
+    depends_on:
+      - postgres
+
+  postgres:
+    container_name: postgres-floodme
+    hostname: postgres
+    image: postgres
+    environment:
+      POSTGRES_USER: username
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ferretdb
+    volumes:
+      - pg:/var/lib/postgresql/data
+
+  mongo:
+    container_name: mongo-floodme
+    image: mongo
+    ports:
+      - 27019:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+volumes:
+  pg:
