@@ -8,7 +8,9 @@ export async function bench(name: string, fn: () => Promise<void>, count: number
   const results = []
 
   for (let i = 0; i < count; i++) {
-    const elapsed = await _benchSingle(fn)
+    const start = process.hrtime()
+    await fn()
+    const elapsed = process.hrtime(start)[1] / 1000000
     results.push(elapsed)
   }
 
@@ -18,20 +20,10 @@ export async function bench(name: string, fn: () => Promise<void>, count: number
 
   const nf = new Intl.NumberFormat()
 
-  console.log(
-    `${chalk.gray(name)}: ` +
-      `${chalk.green(`min: ${nf.format(min)}ms`)} - ` +
-      `${chalk.red(`max: ${nf.format(max)}ms`)} - ` +
-      `${chalk.yellow(`avg: ${nf.format(avg)}ms`)}`
-  )
+  const minString = chalk.green(`min: ${nf.format(min)}ms`)
+  const maxString = chalk.red(`max: ${nf.format(max)}ms`)
+  const avgString = chalk.yellow(`avg: ${nf.format(avg)}ms`)
+  console.log(`${chalk.gray(name)}: ${minString} - ${maxString} - ${avgString}`)
 
   return { min, max, avg }
-}
-
-async function _benchSingle(fn: () => Promise<void>): Promise<number> {
-  const start = process.hrtime()
-  await fn()
-  const elapsed = process.hrtime(start)[1] / 1000000
-
-  return elapsed
 }
