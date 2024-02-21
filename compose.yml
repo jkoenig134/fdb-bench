@@ -12,7 +12,7 @@ services:
 
   ferretdb-fast:
     container_name: ferretdb-fast
-    image: ghcr.io/ferretdb/ferretdb-dev:pr-pg-dotnotation-pushdown-2069
+    image: ghcr.io/ferretdb/ferretdb
     restart: on-failure
     ports:
       - 27017:27017
