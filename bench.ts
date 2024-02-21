@@ -2,7 +2,7 @@ import chalk from "chalk"
 
 type Timing = { min: number; max: number; avg: number }
 
-export type Timings = { fast: Timing; slow: Timing }
+export type Timings = { fast: Timing; slow: Timing; native: Timing }
 
 export async function bench(name: string, fn: () => Promise<void>, count: number): Promise<Timing> {
   const results = []
