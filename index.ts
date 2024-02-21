@@ -22,30 +22,34 @@ await mongodb.connect()
 const mongodbDb = await mongodb.getDatabase(dbName)
 const mongodbCollection = await mongodbDb.getCollection(collectionName)
 
+const iterations = 20
+const numberOfDocsPerIteration = 1000
+
 const timings: Record<number, Timings> = {}
 
-for (let i = 0; i < 20; i++) {
-  await fill(1000, fastCollection)
-  await fill(1000, mongodbCollection)
+for (let i = 0; i < iterations; i++) {
+  await fill(numberOfDocsPerIteration, fastCollection)
+  await fill(numberOfDocsPerIteration, mongodbCollection)
 
-  const randomPeer = (await fastCollection.findOne()).peer.address
+  const randomFerretPeer = (await fastCollection.findOne()).peer.address
   const count = await fastCollection.count()
 
   const fast = await bench(
     `fast with ${count} docs`,
-    async () => await fastCollection.find({ "peer.address": randomPeer }),
+    async () => await fastCollection.find({ "peer.address": randomFerretPeer }),
     10
   )
 
   const slow = await bench(
     `slow with ${count} docs`,
-    async () => await slowCollection.find({ "peer.address": randomPeer }),
+    async () => await slowCollection.find({ "peer.address": randomFerretPeer }),
     3
   )
 
+  const randomNativePeer = (await fastCollection.findOne()).peer.address
   const native = await bench(
     `native with ${count} docs`,
-    async () => await mongodbCollection.find({ "peer.address": randomPeer }),
+    async () => await mongodbCollection.find({ "peer.address": randomNativePeer }),
     10
   )
 
