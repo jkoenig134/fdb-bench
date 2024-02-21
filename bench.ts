@@ -10,7 +10,8 @@ export async function bench(name: string, fn: () => Promise<void>, count: number
   for (let i = 0; i < count; i++) {
     const start = process.hrtime()
     await fn()
-    const elapsed = process.hrtime(start)[1] / 1000000
+    const end = process.hrtime(start)
+    const elapsed = end[0] * 1000 + end[1] / 1000000
     results.push(elapsed)
   }
 
