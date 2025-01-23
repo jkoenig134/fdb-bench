@@ -1,33 +1,57 @@
 services:
+  ferretdb-v1:
+    image: ghcr.io/ferretdb/ferretdb:1
+    restart: on-failure
+    ports:
+      - 27018:27017
+    environment:
+      - FERRETDB_POSTGRESQL_URL=postgres://username:password@postgres:5432/postgres
+    networks:
+      - v1
+
+  postgres-v1:
+    image: postgres
+    hostname: postgres
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=username
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=postgres
+    volumes:
+      - pg-v1:/var/lib/postgresql/data
+    networks:
+      - v1
+
   ferretdb:
-    container_name: ferretdb-floodme
+    container_name: ferretdb-v2
     image: ghcr.io/ferretdb/ferretdb:2
     restart: on-failure
     ports:
       - 27017:27017
     environment:
-      - FERRETDB_POSTGRESQL_URL=postgres://username:password@postgres:5432/ferretdb
+      - FERRETDB_POSTGRESQL_URL=postgres://username:password@postgres:5432/postgres
     depends_on:
       - postgres
     networks:
-      - ferret
+      - v2
 
   postgres:
-    container_name: postgres-floodme
+    container_name: postgres-v2
     hostname: postgres
     image: ghcr.io/ferretdb/postgres-documentdb:16
     restart: on-failure
+    platform: linux/amd64
     environment:
       - POSTGRES_USER=username
       - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=ferretdb
+      - POSTGRES_DB=postgres
     volumes:
-      - ./data:/var/lib/postgresql/data
+      - pg-v2:/var/lib/postgresql/data
     networks:
-      - ferret
+      - v2
 
   mongo:
-    container_name: mongo-floodme
+    container_name: mongo
     image: mongo
     ports:
       - 27019:27017
@@ -36,7 +60,13 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: example
 
 networks:
-  ferret:
+  v1:
+    name: ferretdb-flooder-v1
+  v2:
+    name: ferretdb-flooder-v2
 
 volumes:
-  pg:
+  pg-v1:
+    name: pg-v1
+  pg-v2:
+    name: pg-v2
