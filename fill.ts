@@ -5,8 +5,6 @@ import cliProgress from "cli-progress"
 import pLimit from "p-limit"
 
 export async function fill(name: string, count: number, collection: MongoDbCollection): Promise<void> {
-  console.log(`filling ${chalk.bold(name)}`)
-
   const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic)
   bar1.start(count, 0)
 
@@ -29,7 +27,7 @@ export async function fill(name: string, count: number, collection: MongoDbColle
   const nf = new Intl.NumberFormat()
 
   console.log(
-    `${chalk.gray(`create ${count} documents`)}: ` +
+    `${chalk.gray(`create ${count} documents on ${name}`)}: ` +
       `${chalk.green(`min: ${nf.format(min)}ms`)} - ` +
       `${chalk.red(`max: ${nf.format(max)}ms`)} - ` +
       `${chalk.yellow(`avg: ${nf.format(avg)}ms`)}`
