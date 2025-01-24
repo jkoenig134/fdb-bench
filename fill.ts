@@ -4,7 +4,9 @@ import chalk from "chalk"
 import cliProgress from "cli-progress"
 import pLimit from "p-limit"
 
-export async function fill(count: number, collection: MongoDbCollection): Promise<void> {
+export async function fill(name: string, count: number, collection: MongoDbCollection): Promise<void> {
+  console.log(`filling ${chalk.bold(name)}`)
+
   const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic)
   bar1.start(count, 0)
 

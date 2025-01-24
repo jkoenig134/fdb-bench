@@ -22,24 +22,19 @@ await mongodb.connect()
 const mongodbDb = await mongodb.getDatabase(dbName)
 const mongodbCollection = await mongodbDb.getCollection(collectionName)
 
-const iterations = 20
-const numberOfDocsPerIteration = 1000
+const iterations = 200
+const numberOfDocsPerIteration = 10000
+
+const v1Enabled = process.env.V1 === "true"
 
 const timings: Record<number, Timings> = {}
 
 for (let i = 0; i < iterations; i++) {
-  await fill(numberOfDocsPerIteration, ferretV1Collection)
-  await fill(numberOfDocsPerIteration, ferretV2Collection)
-  await fill(numberOfDocsPerIteration, mongodbCollection)
+  if (v1Enabled) await fill("FerretDB V1", numberOfDocsPerIteration, ferretV1Collection)
+  await fill("FerretDB V2", numberOfDocsPerIteration, ferretV2Collection)
+  await fill("MongoDB", numberOfDocsPerIteration, mongodbCollection)
 
   const count = await mongodbCollection.count()
-
-  const randomFerretV1Peer = (await ferretV1Collection.findOne()).peer.address
-  const ferretV1Results = await bench(
-    `ferretV1 with ${count} docs`,
-    async () => await ferretV1Collection.find({ "peer.address": randomFerretV1Peer }),
-    10
-  )
 
   const randomFerretV2Peer = (await ferretV2Collection.findOne()).peer.address
   const ferretV2Results = await bench(
@@ -55,33 +50,56 @@ for (let i = 0; i < iterations; i++) {
     10
   )
 
-  timings[count] = { ferretV1: ferretV1Results, ferretV2: ferretV2Results, native: nativeResults }
+  const timingsForCount: Timings = { ferretV2: ferretV2Results, native: nativeResults }
+
+  if (v1Enabled) {
+    const randomFerretV1Peer = (await ferretV1Collection.findOne()).peer.address
+    const ferretV1Results = await bench(
+      `ferretV1 with ${count} docs`,
+      async () => await ferretV1Collection.find({ "peer.address": randomFerretV1Peer }),
+      10
+    )
+
+    timingsForCount.ferretV1 = ferretV1Results
+  }
+
+  timings[count] = timingsForCount
 
   console.log("------------------------------------------------------------")
 }
 
 console.log(
   table([
-    ["DB /\nCount", "FerretDB V1", "FerretDB V2", "Native"],
-    ...Object.entries(timings).map(([count, { ferretV1, ferretV2, native }]) => [
-      count,
-      `min: ${ferretV1.min.toFixed(2)}ms\nmax: ${ferretV1.max.toFixed(2)}ms\navg: ${ferretV1.avg.toFixed(2)}ms`,
-      `min: ${ferretV2.min.toFixed(2)}ms\nmax: ${ferretV2.max.toFixed(2)}ms\navg: ${ferretV2.avg.toFixed(2)}ms`,
-      `min: ${native.min.toFixed(2)}ms\nmax: ${native.max.toFixed(2)}ms\navg: ${native.avg.toFixed(2)}ms`,
-    ]),
+    v1Enabled ? ["DB /\nCount", "FerretDB V1", "FerretDB V2", "Native"] : ["DB /\nCount", "FerretDB V2", "Native"],
+    ...Object.entries(timings).map(([count, { ferretV1, ferretV2, native }]) =>
+      ferretV1
+        ? [
+            count,
+            `min: ${ferretV1.min.toFixed(2)}ms\nmax: ${ferretV1.max.toFixed(2)}ms\navg: ${ferretV1.avg.toFixed(2)}ms`,
+            `min: ${ferretV2.min.toFixed(2)}ms\nmax: ${ferretV2.max.toFixed(2)}ms\navg: ${ferretV2.avg.toFixed(2)}ms`,
+            `min: ${native.min.toFixed(2)}ms\nmax: ${native.max.toFixed(2)}ms\navg: ${native.avg.toFixed(2)}ms`,
+          ]
+        : [
+            count,
+            `min: ${ferretV2.min.toFixed(2)}ms\nmax: ${ferretV2.max.toFixed(2)}ms\navg: ${ferretV2.avg.toFixed(2)}ms`,
+            `min: ${native.min.toFixed(2)}ms\nmax: ${native.max.toFixed(2)}ms\navg: ${native.avg.toFixed(2)}ms`,
+          ]
+    ),
   ])
 )
 
-const nf = new Intl.NumberFormat()
+const nf = new Intl.NumberFormat("de-DE", { useGrouping: false })
 fs.writeFileSync(
   "timings.csv",
   Object.entries(timings)
-    .map(
-      ([num, timing]) =>
-        `${num};${nf.format(timing.ferretV1.avg)};${nf.format(timing.ferretV2.avg)};${nf.format(timing.native.avg)}`
+    .map(([num, timing]) =>
+      timing.ferretV1
+        ? `${num};${nf.format(timing.ferretV1?.avg)};${nf.format(timing.ferretV2.avg)};${nf.format(timing.native.avg)}`
+        : `${num};${nf.format(timing.ferretV2.avg)};${nf.format(timing.native.avg)}`
     )
     .join("\n")
 )
+
 fs.writeFileSync("timings.json", JSON.stringify(timings, null, 2))
 
 process.exit()
